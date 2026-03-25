@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🌸 Cutie Calc</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <!-- Lucide icons (open source MIT) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    :root {
+      --pink:    #ffb3d1;
+      --pink-d:  #ff85b3;
+      --lavender:#d5b8ff;
+      --mint:    #b8f0e0;
+      --yellow:  #ffe9a0;
+      --peach:   #ffd4b8;
+      --sky:     #b8deff;
+      --white:   #fffaf8;
+      --text:    #5a3e6b;
+      --shadow:  rgba(180,120,200,0.18);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ffd6ec 0%, #e8d5ff 40%, #c5eaff 100%);
+      font-family: 'Nunito', sans-serif;
+      overflow: hidden;
+    }
+
+    /* floating bubbles background */
+    .bubbles { position:fixed; inset:0; pointer-events:none; z-index:0; }
+    .bubble {
+      position:absolute;
+      border-radius:50%;
+      opacity:0.35;
+      animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(110vh) scale(1);   opacity:0.35; }
+      100% { transform: translateY(-10vh) scale(1.1); opacity:0;    }
+    }
+
+    /* ── card ── */
+    .calc-wrapper {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* little deco stars */
+    .deco {
+      position:absolute;
+      font-size:1.4rem;
+      animation: spin 6s linear infinite;
+      pointer-events:none;
+    }
+    .deco:nth-child(1){ top:-18px; left:30px;  animation-duration:7s; }
+    .deco:nth-child(2){ top:-14px; right:25px; animation-direction:reverse; animation-duration:5s; }
+    .deco:nth-child(3){ bottom:-12px; left:18px; animation-duration:9s; }
+    .deco:nth-child(4){ bottom:-16px; right:30px; animation-direction:reverse; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .calc {
+      background: var(--white);
+      border-radius: 32px;
+      padding: 28px 24px 24px;
+      width: 320px;
+      box-shadow:
+        0 8px 32px var(--shadow),
+        0 2px 8px rgba(255,180,210,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+
+    /* title bar */
+    .title-bar {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      margin-bottom:18px;
+    }
+    .title-bar h1 {
+      font-size:1.1rem;
+      font-weight:900;
+      color: var(--text);
+      letter-spacing:.04em;
+    }
+    .title-icon { color: var(--pink-d); width:20px; height:20px; }
+
+    /* display */
+    .display {
+      background: linear-gradient(135deg, #ffeef7 0%, #ede5ff 100%);
+      border-radius: 20px;
+      padding: 16px 18px 12px;
+      margin-bottom: 18px;
+      min-height: 88px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      justify-content:flex-end;
+      border: 2px solid rgba(213,184,255,0.4);
+      position:relative;
+      overflow:hidden;
+    }
+    .display::before {
+      content:'';
+      position:absolute;
+      top:-20px; right:-20px;
+      width:80px; height:80px;
+      background: radial-gradient(circle, rgba(255,179,209,0.3) 0%, transparent 70%);
+      border-radius:50%;
+    }
+    .expr {
+      font-size:.8rem;
+      color: #c3a0d8;
+      font-weight:600;
+      min-height:18px;
+      word-break:break-all;
+      text-align:right;
+    }
+    .result {
+      font-size:2.4rem;
+      font-weight:900;
+      color: var(--text);
+      line-height:1;
+      word-break:break-all;
+      transition: transform .1s, color .1s;
+    }
+    .result.pop { transform:scale(1.08); color: var(--pink-d); }
+
+    /* button grid */
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    /* base button */
+    button.btn {
+      border:none;
+      cursor:pointer;
+      border-radius:16px;
+      font-family:'Nunito',sans-serif;
+      font-weight:800;
+      font-size:1.05rem;
+      padding:0;
+      height:60px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      transition:
+        transform .1s cubic-bezier(.34,1.56,.64,1),
+        box-shadow .1s,
+        filter .1s;
+      position:relative;
+      overflow:hidden;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button.btn::after {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:rgba(255,255,255,0);
+      transition: background .15s;
+    }
+    button.btn:hover  { transform:translateY(-2px) scale(1.04); filter:brightness(1.04); }
+    button.btn:active { transform:scale(.93); }
+
+    /* number buttons */
+    .btn-num {
+      background: linear-gradient(145deg, #fff0f7, #fde8ff);
+      color: var(--text);
+      box-shadow: 0 4px 0 rgba(213,150,200,0.25), 0 2px 8px rgba(200,150,220,0.12);
+    }
+    /* operator buttons */
+    .btn-op {
+      background: linear-gradient(145deg, var(--lavender), #c4aaff);
+      color: #4a2e6b;
+      box-shadow: 0 4px 0 rgba(160,110,220,0.3), 0 2px 8px rgba(160,110,220,0.15);
+    }
+    /* equals */
+    .btn-eq {
+      background: linear-gradient(145deg, var(--pink), var(--pink-d));
+      color: #fff;
+      box-shadow: 0 4px 0 rgba(220,80,140,0.35), 0 2px 8px rgba(220,80,140,0.2);
+      grid-column: span 2;
+    }
+    /* clear */
+    .btn-clear {
+      background: linear-gradient(145deg, var(--mint), #90e8cc);
+      color: #2a6b5a;
+      box-shadow: 0 4px 0 rgba(80,180,150,0.3);
+    }
+    /* backspace */
+    .btn-back {
+      background: linear-gradient(145deg, var(--peach), #ffbe99);
+      color: #7a4020;
+      box-shadow: 0 4px 0 rgba(220,130,80,0.3);
+    }
+    /* zero spans 2 */
+    .btn-zero { grid-column: span 2; }
+    /* decimal / percent */
+    .btn-extra {
+      background: linear-gradient(145deg, var(--yellow), #ffe070);
+      color: #7a6020;
+      box-shadow: 0 4px 0 rgba(200,160,40,0.25);
+    }
+
+    /* icon sizing inside buttons */
+    button.btn svg { width:20px; height:20px; pointer-events:none; }
+
+    /* ripple */
+    .ripple {
+      position:absolute;
+      border-radius:50%;
+      background:rgba(255,255,255,0.55);
+      transform:scale(0);
+      animation: ripple .45s linear;
+      pointer-events:none;
+    }
+    @keyframes ripple {
+      to { transform:scale(4); opacity:0; }
+    }
+
+    /* footer */
+    .footer {
+      text-align:center;
+      margin-top:16px;
+      font-size:.68rem;
+      color:#c3a0d8;
+      font-weight:700;
+      letter-spacing:.05em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- background bubbles -->
+<div class="bubbles" id="bubbles"></div>
+
+<div class="calc-wrapper">
+  <!-- deco spinning stars/flowers -->
+  <span class="deco">🌸</span>
+  <span class="deco">⭐</span>
+  <span class="deco">🌼</span>
+  <span class="deco">💜</span>
+
+  <div class="calc">
+
+    <!-- title -->
+    <div class="title-bar">
+      <i data-lucide="sparkles" class="title-icon"></i>
+      <h1>Cutie Calc</h1>
+      <i data-lucide="sparkles" class="title-icon"></i>
+    </div>
+
+    <!-- display -->
+    <div class="display">
+      <div class="expr" id="expr"></div>
+      <div class="result" id="result">0</div>
+    </div>
+
+    <!-- button grid -->
+    <div class="grid" id="grid">
+
+      <!-- row 1 -->
+      <button class="btn btn-clear"  data-action="clear">
+        <i data-lucide="refresh-ccw"></i>
+      </button>
+      <button class="btn btn-op"    data-action="sign">+/−</button>
+      <button class="btn btn-extra" data-action="percent">%</button>
+      <button class="btn btn-op"    data-action="op" data-val="÷">÷</button>
+
+      <!-- row 2 -->
+      <button class="btn btn-num" data-action="num" data-val="7">7</button>
+      <button class="btn btn-num" data-action="num" data-val="8">8</button>
+      <button class="btn btn-num" data-action="num" data-val="9">9</button>
+      <button class="btn btn-op"  data-action="op"  data-val="×">×</button>
+
+      <!-- row 3 -->
+      <button class="btn btn-num" data-action="num" data-val="4">4</button>
+      <button class="btn btn-num" data-action="num" data-val="5">5</button>
+      <button class="btn btn-num" data-action="num" data-val="6">6</button>
+      <button class="btn btn-op"  data-action="op"  data-val="−">−</button>
+
+      <!-- row 4 -->
+      <button class="btn btn-num" data-action="num" data-val="1">1</button>
+      <button class="btn btn-num" data-action="num" data-val="2">2</button>
+      <button class="btn btn-num" data-action="num" data-val="3">3</button>
+      <button class="btn btn-op"  data-action="op"  data-val="+">+</button>
+
+      <!-- row 5 -->
+      <button class="btn btn-num btn-zero" data-action="num" data-val="0">0</button>
+      <button class="btn btn-extra" data-action="dot">·</button>
+      <button class="btn btn-back"  data-action="back">
+        <i data-lucide="delete"></i>
+      </button>
+      <button class="btn btn-eq"    data-action="equals" style="grid-column:1 / span 4; margin-top:0;">
+        <i data-lucide="equal"></i>&nbsp;=
+      </button>
+
+    </div>
+  </div>
+
+  <div class="footer">made with 💕 just for you</div>
+</div>
+
+<script>
+  // ── init Lucide icons ──
+  lucide.createIcons();
+
+  // ── background bubbles ──
+  const bubblesEl = document.getElementById('bubbles');
+  const colors = ['#ffb3d1','#d5b8ff','#b8f0e0','#ffe9a0','#ffd4b8','#b8deff'];
+  for (let i = 0; i < 18; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = 20 + Math.random() * 50;
+    b.style.cssText = `
+      width:${size}px; height:${size}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      left:${Math.random()*100}%;
+      animation-duration:${8+Math.random()*14}s;
+      animation-delay:${-Math.random()*20}s;
+    `;
+    bubblesEl.appendChild(b);
+  }
+
+  // ── calculator logic ──
+  let current  = '0';
+  let stored   = null;
+  let operator = null;
+  let fresh    = false;   // next digit replaces display
+
+  const exprEl   = document.getElementById('expr');
+  const resultEl = document.getElementById('result');
+
+  function updateDisplay(val) {
+    resultEl.textContent = val;
+    resultEl.classList.add('pop');
+    setTimeout(() => resultEl.classList.remove('pop'), 150);
+  }
+
+  function compute() {
+    if (stored === null || operator === null) return parseFloat(current);
+    const a = stored, b = parseFloat(current);
+    switch(operator) {
+      case '+': return a + b;
+      case '−': return a - b;
+      case '×': return a * b;
+      case '÷': return b === 0 ? '🚫' : a / b;
+    }
+  }
+
+  function fmt(n) {
+    if (n === '🚫') return '🚫';
+    // avoid floating point noise
+    const s = parseFloat(n.toPrecision(10)).toString();
+    return s;
+  }
+
+  document.getElementById('grid').addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    // ripple
+    addRipple(btn, e);
+
+    const action = btn.dataset.action;
+    const val    = btn.dataset.val;
+
+    switch(action) {
+      case 'num':
+        if (current === '0' || fresh) { current = val; fresh = false; }
+        else if (current.length < 12)  current += val;
+        updateDisplay(current);
+        break;
+
+      case 'dot':
+        if (fresh) { current = '0'; fresh = false; }
+        if (!current.includes('.')) current += '.';
+        updateDisplay(current);
+        break;
+
+      case 'op':
+        if (operator && !fresh) {
+          const res = compute();
+          if (res === '🚫') { reset(); updateDisplay('🚫'); return; }
+          stored = res;
+          exprEl.textContent = fmt(res) + ' ' + val;
+          updateDisplay(fmt(res));
+        } else {
+          stored = parseFloat(current);
+          exprEl.textContent = current + ' ' + val;
+        }
+        operator = val;
+        fresh    = true;
+        break;
+
+      case 'equals':
+        if (operator === null) break;
+        const res = compute();
+        exprEl.textContent = exprEl.textContent.replace(/[+−×÷]\s*$/, operator) + ' ' + current + ' =';
+        if (res === '🚫') { current = '🚫'; stored=null; operator=null; fresh=true; }
+        else { current = fmt(res); stored=null; operator=null; fresh=true; }
+        updateDisplay(current);
+        break;
+
+      case 'clear':
+        reset();
+        break;
+
+      case 'back':
+        if (fresh || current === '0' || current.length === 1) { current='0'; }
+        else { current = current.slice(0,-1) || '0'; }
+        updateDisplay(current);
+        break;
+
+      case 'sign':
+        if (current === '0') break;
+        current = (parseFloat(current) * -1).toString();
+        updateDisplay(current);
+        break;
+
+      case 'percent':
+        current = (parseFloat(current) / 100).toString();
+        updateDisplay(current);
+        break;
+    }
+  });
+
+  // keyboard support 🎹
+  document.addEventListener('keydown', e => {
+    const map = {
+      '0':'0','1':'1','2':'2','3':'3','4':'4',
+      '5':'5','6':'6','7':'7','8':'8','9':'9',
+      '.':'.', ',':'.',
+      '+':'+', '-':'−', '*':'×', '/':'÷',
+      'Enter':'=', '=':'=',
+      'Backspace':'back', 'Escape':'clear', '%':'%'
+    };
+    const k = map[e.key];
+    if (!k) return;
+    // find matching button and click it
+    const btn = [...document.querySelectorAll('[data-action]')].find(b =>
+      (b.dataset.val === k) ||
+      (k==='back'    && b.dataset.action==='back')    ||
+      (k==='clear'   && b.dataset.action==='clear')   ||
+      (k==='='       && b.dataset.action==='equals')  ||
+      (k==='.'       && b.dataset.action==='dot')     ||
+      (k==='%'       && b.dataset.action==='percent')
+    );
+    if (btn) btn.click();
+  });
+
+  function reset() {
+    current='0'; stored=null; operator=null; fresh=false;
+    exprEl.textContent='';
+    updateDisplay('0');
+  }
+
+  function addRipple(btn, e) {
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    r.style.width  = r.style.height = size + 'px';
+    r.style.left   = (e.clientX - rect.left  - size/2) + 'px';
+    r.style.top    = (e.clientY - rect.top   - size/2) + 'px';
+    btn.appendChild(r);
+    r.addEventListener('animationend', () => r.remove());
+  }
+</script>
+</body>
+</html>
